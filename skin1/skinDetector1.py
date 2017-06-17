@@ -1,13 +1,20 @@
 import numpy as np
 import cv2
 from scipy.misc import toimage
+	
+class filenameError(Exception):
+	pass
 
-#Standard Skin Detection using RGB,HSV and YCrCB space.	
-def findValues(img):
-	#Split the BGRA image into its Components
-	b_values,g_values,r_values,a_values = cv2.split(img)
-	#Convert BGRA image to BGR image
-	img1 = cv2.cvtColor(img,cv2.COLOR_BGRA2BGR)
+def findValues(img,encodeType):
+	if encodeType == 'png':
+		#Split the BGRA image into its Components
+		b_values,g_values,r_values,a_values = cv2.split(img)
+		#Convert BGRA image to BGR image
+		img1 = cv2.cvtColor(img,cv2.COLOR_BGRA2BGR)
+	else:
+		b_values,g_values,r_values = cv2.split(img)
+		img1 = img
+	
 	#Comvert the BGR image to HSV
 	hsv_img = cv2.cvtColor(img1,cv2.COLOR_BGR2HSV)
 	#Split the HSV image into components
@@ -32,7 +39,9 @@ def findValues(img):
 	rg = r_values>b_values
 	rb = r_values>b_values
 	r_g = np.absolute(r_values-b_values)>15
-	a = a_values>15
+	
+	if encodeType == 'png':
+		a = a_values>15
 	cr = cr_values>135
 	cb = cb_values>85
 	y = y_values>80
@@ -43,8 +52,12 @@ def findValues(img):
 	cr5 = (cr_values <= (-2.2857*cb_values)+432.85)	
 	
 	#Two conditions to make
-	cond1 = [r,g,b,rg,rb,r_g,a]
-	cond2 = [r,g,b,rg,rb,r_g,a,cr,cb,y,cr1,cr2,cr3,cr4,cr5]
+	if encodeType == 'png':
+		cond1 = [r,g,b,rg,rb,r_g,a]
+		cond2 = [r,g,b,rg,rb,r_g,a,cr,cb,y,cr1,cr2,cr3,cr4,cr5]
+	else:
+		cond1 = [r,g,b,rg,rb,r_g]
+		cond2 = [r,g,b,rg,rb,r_g,cr,cb,y,cr1,cr2,cr3,cr4,cr5]
 	
 	temp1 = np.logical_and(h,s)
 	for i in cond1:
@@ -60,12 +73,43 @@ def findValues(img):
 		for j in range(final.shape[1]):
 			#Mask the pixel if it does not meet the conditions
 			if final[i][j] == False:
-				img[i][j] = (0,0,0,255)
+				if encodeType == 'png':
+					img[i][j] = (0,0,0,255)
+				else:
+					img[i][j] = (0,0,0)
 	return img
 	#toimage(img).show()
 
+def getGreyScale(img,encodeType):
+	
+	for i in range(img.shape[0]):
+		for j in range(img.shape[1]):
+			if encodeType == 'png':
+				if img[i][j].all(0):
+					img[i][j] = (255,255,255,255)
+			else:
+				if img[i][j].all(0):
+					img[i][j] = (255,255,255)
+	return img
+	
+def runSkinDetection(filename):
+	nameSplit = filename.split('.')
+	if(len(nameSplit)>2):
+		raise filenameError("Bad filename")
+	else:
+		encodeType = nameSplit[1]
+	img = cv2.imread(fileName,-1)
+	img1 = np.copy(img)
+	#Find skin pixels in the image
+	skinImg = findValues(img1,encodeType)
+	skinImg = getGreyScale(skinImg,encodeType)
+	result = np.concatenate((img,skinImg),axis = 1)
+	return result
+
 if __name__ == "__main__":
 	
-	img = cv2.imread("imag3.png",-1)
-	skinImg = findValues(img)
+	fileName = "img1.jpeg"
+	skinImg = runSkinDetection(fileName)
+	#result = np.concatenate((img1,skinImg),axis = 1)
+	#result = cv2.resize(skinImg,(10,10))
 	toimage(skinImg).show()
