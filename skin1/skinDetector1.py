@@ -98,14 +98,22 @@ def runSkinDetection(filename):
 		raise filenameError("Bad filename")
 	else:
 		encodeType = nameSplit[1]
-	img = cv2.imread(fileName,-1)
+	img = cv2.imread(filename,-1)
 	img1 = np.copy(img)
 	#Find skin pixels in the image
 	skinImg = findValues(img1,encodeType)
 	skinImg = getGreyScale(skinImg,encodeType)
-	result = np.concatenate((img,skinImg),axis = 1)
-	return result
+	#result = np.concatenate((img,skinImg),axis = 1)
+	return skinImg
 
+def getEncodingType(filename):
+	nameSplit = filename.split('.')
+	if(len(nameSplit)>2):
+		raise filenameError("Bad filename")
+	else:
+		encodeType = nameSplit[1]
+	return encodeType
+	
 if __name__ == "__main__":
 	
 	fileName = "img1.jpeg"
